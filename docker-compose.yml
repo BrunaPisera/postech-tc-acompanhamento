@@ -1,0 +1,43 @@
+version: '3.9'
+services:
+  acompanhamento_db:
+    image: postgres
+    restart: always
+    container_name: acompanhamento_db
+    volumes:
+      - acompanhamento_pgsql:/var/lib/postgresql/data
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      PGUSER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    networks:
+      - acompanhamento-network
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready" ]
+      timeout: 10s
+      retries: 3
+  acompanhamento_api:
+      build:
+        context: .
+        dockerfile: Acompanhamento.API/Dockerfile
+      container_name: acompanhamento_api
+      ports: 
+      - "5000:80"   
+      depends_on:
+        - acompanhamento_db
+      networks:
+        - acompanhamento_network
+      environment: 
+        DB_HOST: ${DB_HOST}
+        DB_PORT: ${DB_PORT}
+        DB_USER: ${DB_USER}
+        DB_PASSWORD: ${DB_PASSWORD}
+        DB_NAME: ${DB_NAME} 
+          
+        
+      
+volumes:
+  mongoManagement:
+
+networks:
+  acompanhamento-network:
