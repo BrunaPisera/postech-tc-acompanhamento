@@ -1,6 +1,8 @@
 ﻿using Acompanhamento.Core.Entities;
 using Acompanhamento.Core.Entities.Enums;
+using Acompanhamento.UseCases.DTOs;
 using Acompanhamento.UseCases.Exceptions;
+using Acompanhamento.UseCases.Extensions;
 using Acompanhamento.UseCases.Gateway;
 using Acompanhamento.UseCases.Interfaces;
 
@@ -10,17 +12,43 @@ namespace Acompanhamento.UseCases
     {
         private readonly IAcompanhamentoPersistenceGateway AcompanhamentoPersistencePort;
 
-        public AcompanhamentoUseCases(IAcompanhamentoPersistenceGateway pedidoPersistencePort)
+        public AcompanhamentoUseCases(IAcompanhamentoPersistenceGateway acompanhamentoPersistencePort)
         {
-            AcompanhamentoPersistencePort = pedidoPersistencePort;
+            AcompanhamentoPersistencePort = acompanhamentoPersistencePort;
         }
 
-        public Task AtualizaStatusComoEmPreparacaoAsync(Guid idPedido)
-        {
-            throw new NotImplementedException();
+        public async Task SalvarPedidoComoRecebidoAsync(PedidoDto pedidoDto)
+        {               
+            var pedidoExistente = await TryGetPedidoById(pedidoDto.IdPedido);
+
+            if (pedidoExistente != null)
+            {                
+                Console.WriteLine($"Pedido {pedidoDto.IdPedido} já existe. Não será inserido novamente.");
+                return;
+            }
+
+            var acompanhamento = new AcompanhamentoAggregate()
+            {
+                Status = Status.Recebido,
+                IdPedido = pedidoDto.IdPedido,
+                ClientName = pedidoDto.ClienteName,
+            };
+            await TryToSaveAcompanhamento(acompanhamento);
         }
 
-        public async Task AtualizaStatusComoProntoAsync(string idPedido)
+        public async Task AtualizaStatusComoEmPreparacaoAsync(PedidoDto pedidoDto)
+        {
+            var pedido = await TryGetPedidoById(pedidoDto.IdPedido);
+
+            if (pedido.Status != Status.Recebido)
+                throw new OperacaoInvalidaException("Status do pedido precisa estar como recebido para ser atualizado como em preparação.");
+
+            pedido.Status = Status.Preparacao;
+
+            await TryToSaveAcompanhamento(pedido);
+        }
+
+        public async Task AtualizaStatusComoProntoAsync(Guid idPedido)
         {
             var pedido = await TryGetPedidoById(idPedido);
 
@@ -30,28 +58,40 @@ namespace Acompanhamento.UseCases
             pedido.Status = Status.Pronto;
 
             await TryToSaveAcompanhamento(pedido);
-        }
+        }          
 
-        public Task AtualizaStatusComoProntoAsync(Guid idPedido)
+
+        public async Task FinalizaPedidoAsync(Guid idPedido)
         {
-            throw new NotImplementedException();
+            var pedido = await TryGetPedidoById(idPedido);
+
+            if (pedido.Status != Status.Pronto)
+                throw new OperacaoInvalidaException("Status do pedido precisa estar como pronto para que o pedido possa ser finalizado.");
+
+            pedido.Status = Status.Finalizado;
+
+            await TryToSaveAcompanhamento(pedido);
         }
 
-        public Task FinalizaPedidoAsync(Guid idPedido)
+        public async Task<List<AcompanhamentoDto>> GetAllPedidosAsync()
         {
-            throw new NotImplementedException();
+            var pedidos = await AcompanhamentoPersistencePort.GetAllPedidosNaoFinalizadosAsync();
+            var pedidosDto = pedidos.Select(x => x.ToPedidoDto());
+
+            return pedidosDto.ToList();
         }
 
-        public Task SalvarPedidoComoRecebidoAsync(Guid idPedido)
+        public async Task<List<AcompanhamentoDto>> GetAllPedidosByStatusAsync(Status status)
         {
-            throw new NotImplementedException();
+            var acompanhamentos = await AcompanhamentoPersistencePort.GetAllPedidosByStatusAsync(status);
+            var acompanhamentosDto = acompanhamentos.Select(x => x.ToPedidoDto());
+
+            return acompanhamentosDto.ToList();
         }
 
-        private async Task<AcompanhamentoAggregate?> TryGetPedidoById(string idPedido)
+        private async Task<AcompanhamentoAggregate?> TryGetPedidoById(Guid idPedido)
         {
             var pedido = await AcompanhamentoPersistencePort.GetAcompanhamentoByPedidoIdAsync(idPedido);
-
-            if (pedido == null) throw new PedidoNaoEncontradoException("Pedido nao encontrado");
 
             return pedido;
         }
