@@ -13,44 +13,35 @@ namespace Acompanhamento.Infrastructure.Gateway
         public AcompanhamentoPersistentGateway(ApplicationContext context)
         {
             Context = context;
-        }
+        }      
+
         public async Task<List<AcompanhamentoAggregate>> GetAllPedidosByStatusAsync(Status status)
         {
             return await Context.Acompanhamento
-                        .Include(x => x.CodigoAcompanhamento)
-                        .Include(x => x.ClientName)
-                        .Include(x => x.IdPedido)                                            
-                        .Where(x => x.Status == status)
-                        .ToListAsync();
+                  .Where(x => x.Status == status)
+                  .ToListAsync();
         }
 
         public async Task<List<AcompanhamentoAggregate>> GetAllPedidosNaoFinalizadosAsync()
         {
-            return await Context.Acompanhamento
-                        .Include(x => x.CodigoAcompanhamento)
-                        .Include(x => x.ClientName)
-                        .Include(x => x.IdPedido)
+            return await Context.Acompanhamento                       
                         .Where(x => x.Status != Status.Finalizado)
                         .ToListAsync();
         }
 
-        public async Task<AcompanhamentoAggregate?> GetPedidoById(string idPedido)
+        public async Task<AcompanhamentoAggregate?> GetAcompanhamentoByPedidoIdAsync(Guid idPedido)
         {
-            return await Context.Acompanhamento
-                       .Include(x => x.CodigoAcompanhamento)
-                       .Include(x => x.ClientName)
-                       .Include(x => x.IdPedido)
+            return await Context.Acompanhamento                     
                        .FirstOrDefaultAsync(x => x.IdPedido == idPedido);
         }
 
-        public Task<bool> SaveAcompanhamentoAsync(AcompanhamentoAggregate acompanhamento)
+        public async Task<bool> SaveAcompanhamentoAsync(AcompanhamentoAggregate acompanhamento)
         {
-            throw new NotImplementedException();
-        }
+            Context.Acompanhamento.Update(acompanhamento);
 
-        public Task<bool> SavePagamentoAsync(AcompanhamentoAggregate pagamento)
-        {
-            throw new NotImplementedException();
+            var result = await Context.SaveChangesAsync();
+
+            return result > 0;
         }
     }
 }

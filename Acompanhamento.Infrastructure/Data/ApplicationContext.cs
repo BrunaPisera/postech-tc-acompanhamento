@@ -20,13 +20,18 @@ namespace Acompanhamento.Infrastructure.Data
         {
             base.OnModelCreating(modelBuilder);
 
-            modelBuilder.Entity<AcompanhamentoAggregate>(Entity => {
-                Entity.HasKey(e => e.Id);
-                Entity.Property(e => e.CodigoAcompanhamento)
+            modelBuilder.HasSequence<int>("Seq_CodAcompanhamento")
+                        .StartsAt(1)
+                        .IncrementsBy(1);
+
+            modelBuilder.Entity<AcompanhamentoAggregate>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.CodigoAcompanhamento)
                     .HasDefaultValueSql("nextval('\"Seq_CodAcompanhamento\"')");
-                Entity.HasIndex(e => e.Status)
+                entity.HasIndex(e => e.Status)
                     .HasDatabaseName("IX_Status");
-            });           
+            });
         }
     }
 }
