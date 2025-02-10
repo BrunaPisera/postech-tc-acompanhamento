@@ -37,7 +37,7 @@ jobs:
         SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
       run: |
         dotnet tool install --global dotnet-sonarscanner
-        dotnet sonarscanner begin /k:"postech-tc-acompanhamento" /o:"bruna-org" /d:sonar.host.url="$SONAR_HOST_URL" /d:sonar.login="$SONAR_TOKEN" /d:sonar.branch.name="master"
+        dotnet sonarscanner begin /k:"BrunaPisera_postech-tc-acompanhamento" /o:"bruna-org" /d:sonar.host.url="$SONAR_HOST_URL" /d:sonar.login="$SONAR_TOKEN" /d:sonar.branch.name="master"
         dotnet build --no-restore
         for project in $(find . -type f -name "*.csproj" | grep "Test"); do
           dotnet test $project --no-build --verbosity normal
