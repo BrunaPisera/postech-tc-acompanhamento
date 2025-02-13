@@ -1,8 +1,6 @@
 name: Build and test .NET
 
 on:
-  push:
-    branches: [ "master", "develop", "actions", "f_*" ]
   pull_request:
     branches: [ "master", "develop", "actions", "f_*"]
 
@@ -11,46 +9,31 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout código
-      uses: actions/checkout@v4
-
+    - uses: actions/checkout@v4
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
       with:
         dotnet-version: 8.0.x
-
+    - name: Install coverlet
+      run: dotnet tool install --global coverlet.console
+    - name: Install sonarscanner
+      run: dotnet tool install --global dotnet-sonarscanner
+    - name: Unshallow
+      run: git fetch --unshallow
+    - name: Run sonarscanner
+      run: dotnet sonarscanner begin /k:"BrunaPisera_postech-tc-acompanhamento" /o:"bruna-org" /d:sonar.token="${{ secrets.SONAR_TOKEN }}" /d:sonar.cs.opencover.reportsPaths=**/coverage.xml /d:sonar.verbose=true
     - name: Restore dependencies
       run: dotnet restore
-
-    - name: SonarCloud Analysis
-      env:
-        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
-      run: |
-        dotnet tool install --global dotnet-sonarscanner
-        dotnet sonarscanner begin /k:"BrunaPisera_postech-tc-acompanhamento" /o:"bruna-org" \
-          /d:sonar.host.url="$SONAR_HOST_URL" \
-          /d:sonar.login="$SONAR_TOKEN" \
-          /d:sonar.branch.name="master" \
-          /d:sonar.cs.opencover.reportsPaths="Acompanhamento.API.Tests/TestResults/coverage.opencover.xml,Acompanhamento.Infrastructure.Tests/TestResults/coverage.opencover.xml,Acompanhamento.UseCases.Tests/TestResults/coverage.opencover.xml"
-        dotnet build --no-restore
-        dotnet sonarscanner end /d:sonar.login="$SONAR_TOKEN"
-
     - name: Build
       run: dotnet build --no-restore
-
-    - name: Run Tests and Collect Code Coverage
+    - name: Generate coverage file
       run: |
-        mkdir -p TestResults  # Garante que a pasta existe antes de gerar o relatório
         for project in $(find . -type f -name "*.Tests.csproj"); do
           dotnet test "$project" --no-build --verbosity normal \
-            -p:CollectCoverage=true \
-            -p:CoverletOutput=TestResults/coverage.opencover.xml \
-            -p:CoverletOutputFormat=opencover \
-            -p:UseSourceLink=true
+            /p:CollectCoverage=true \
+            /p:CoverletOutput=coverage.xml \
+            /p:CoverletOutputFormat=opencover \
+            /p:UseSourceLink=false
         done
-
-    - name: SonarCloud Analysis
-      env:
-        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-      run: dotnet sonarscanner end /d:sonar.login="$SONAR_TOKEN"
+    - name: End sonarscanner
+      run: dotnet sonarscanner end /d:sonar.token="${{ secrets.SONAR_TOKEN }}"
