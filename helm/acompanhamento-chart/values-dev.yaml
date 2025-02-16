@@ -1,0 +1,27 @@
+namespace: dev
+
+# API
+apiName: acompanhamento-api
+apiImage: 
+  name: brunapisera/acompanhamento-api
+  tag: latest
+apiNodePort: 30201
+
+# DB
+dbName: acompanhamento-db
+
+# Config map
+configmap:
+  name: acompanhamento-config-map
+  data:
+    DB_HOST:
+    DB_PORT: 5432
+    DB_USER: postgres
+    DB_NAME: acompanhamentodb
+
+rabbitmq:
+  username: xtpbliuz 
+  password: 
+  hostname: woodpecker.rmq.cloudamqp.com
+  port: 5672
+  virtualhost: xtpbliuz
